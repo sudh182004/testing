@@ -1,4 +1,4 @@
-//Firebase confguartion
+// Firebase configuration
 
 const firebaseConfig = {
   apiKey: "AIzaSyAE4GfH3B4PlTMdNhOmVpzLRZK3lEuHjp0",
@@ -8,116 +8,119 @@ const firebaseConfig = {
   storageBucket: "belloi.appspot.com",
   messagingSenderId: "1087926114054",
   appId: "1:1087926114054:web:b5ba5e9606a78476f3b087",
-  measurementId: "G-P3W4GQRSVS",
+  measurementId: "G-P3W4GQRSVS"
 };
 
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.firestore();
 
-// Get user realtime data from firebase
+// Dom Selector 
 
-// Note we cannot use direct let usercredintion = firebase.auth().cuurentuser beacuse  When your app first loads, Firebase may still be initializing and checking if a user is signed in. During this brief period, firebase.auth().currentUser can return null, even if a user is signed in. This happens because Firebase hasn't yet finished its background work to check the user's authentication state ---------------So use this ->.
-
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    // The user object has basic properties such as display name, email, etc.
-    const displayName = user.displayName;
-    const email = user.email;
-    const photoURL = user.photoURL;
-    const emailVerified = user.emailVerified;
-
-    if (emailVerified != true) {
-      document.querySelector(".verf_email_alert").innerHTML = `
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <strong>Please verify your email to access the website, or refresh if you've already done so.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        `;
+let useremail = document.querySelector(".input_user");
+let userpassord = document.querySelector(".input_password");
+let btn_signup = document.querySelector(".btn_signup");
+let btn_signin = document.querySelector(".btn_signin");
+let rember_checkbox = document.querySelector(".rember_checkbox");
 
 
-    }
-  } else {
-    window.location.href="../index.html"
-  }
-});
+//When page load check user is signin or not for send him to main page
 
-//Dom selector
-let btn_logout = document.querySelector(".btn_logout");
-let btn_send = document.querySelector(".btn_send");
+if (localStorage.getItem("userstatus") === "signin") {
+  window.location.href = "main/main.html";
+}else{
+  useremail.value = localStorage.getItem("useremail")
+  userpassord.value = localStorage.getItem("userpassword")
+}
 
 
-//Logout user
-function logout() {
-  (function confitmation() { // confirm(boolenas) is an function ()
-    let text = ("Are you sure you want to logout :(");
-    if(confirm(text)==true){
+// Create account for a new user
 
+function signup() {
+    const email = useremail.value;
+    const password = userpassord.value;
+
+    //check if any feild is empty?
+
+    if (email === "" || password === "") {
+      alert("Enter Email And Password");
+    } else if (password.length < 6) {
+      alert("Password must contain atleast 6 digits");
+    } else {
+      btn_signup.innerHTML="Signing Up......"
       firebase
         .auth()
-        .signOut()
-        .then(() => {
-          window.location.href = "../index.html";
-          // checkbox empty 
-          localStorage.setItem("userstatus", "logout");
+        .createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          alert("Your account is sucessfully created")
+          localStorage.setItem("userstatus","signin")
+          
+          // Sending the verification email
+          
+          firebase
+          .auth()
+          .currentUser.sendEmailVerification()
+          .then(() => {
+            alert("Verfication email has been send please verify first")
+            window.location.href="main/main.html"
+            });
+     
         })
         .catch((error) => {
-          alert(error);
+          btn_signup.innerHTML="Sign Up"
+          alert(error.message);
         });
     }
-  })()
+  }
+btn_signup.addEventListener("click", signup);
+
+//Login/ Signin
+
+function signin() {
+  const email = useremail.value;
+  const password = userpassord.value;
+
+  if (email === "" || password === "") {
+    alert("Enter Email And Password");
+  } else {
+    btn_signin.innerHTML="Signing In......"
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        //store user eamil and password for checkbox sign in
+        if(rember_checkbox.checked){
+          localStorage.setItem("useremail",email)
+          localStorage.setItem("userpassword",password)
+        }
+        window.location.href = "main/main.html";
+        localStorage.setItem("userstatus", "signin");
+              
+      })
+      .catch((error) => {
+        btn_signin.innerHTML="Sign In"
+        alert(error.message);
+
+      });
+  }
 }
+btn_signin.addEventListener("click", signin);
 
-//Send verfication email again and check if is verired or not
-function sendverifemailagain() {
-  firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-      const emailVerified = user.emailVerified;
-      console.log(emailVerified)
-      if(emailVerified===true){
-        alert("You have already verified your email")
-      }else{
-          firebase
-            .auth()
-            .currentUser.sendEmailVerification()
-            .then(() => {
-              alert("Verfication email has been send please verify first");
-            });
-      }
-  
-    }
+//Forgot password 
+
+function forgetpassword(){
+  const email = useremail.value;
+
+  if (email === "" ){
+    alert("Enter Email");
+  }else{
+
+  firebase.auth().sendPasswordResetEmail(email)
+  .then(() => {
+    alert("Please check your email for password reset")
+  })
+  .catch((error) => {
+    alert(error.message)
+    btn_signup.innerHTML="Sign In"
   });
+ }
 }
-
-// Nav Bar
-const navBar = document.querySelector("nav");
-menuBtns = document.querySelectorAll(".menu-icon");
-overlay = document.querySelector(".overlay");
-
-menuBtns.forEach(menuBtns => {
-  menuBtns.addEventListener("click", () => {
-      navBar.classList.toggle("open");
-  });
-});
-
-overlay.addEventListener("click", () => {
-  navBar.classList.toggle("remove");
-})
-
-// Card serach
-
-document.getElementById('search').addEventListener('input', function() {
-  const searchValue = this.value.toLowerCase();
-  const cards = document.querySelectorAll('.card');
-
-  cards.forEach(card => {
-      const title = card.querySelector('.card-header h3').textContent.toLowerCase();
-      const location = card.querySelector('.card-header p').textContent.toLowerCase();
-
-      if (title.includes(searchValue) || location.includes(searchValue)) {
-          card.style.display = '';
-      } else {
-          card.style.display = 'none';
-      }
-  });
-});
